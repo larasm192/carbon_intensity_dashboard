@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'carbon_api.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
+import 'dart:math';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -14,21 +15,24 @@ class _DashboardState extends State<Dashboard> {
   Color indexColour = Colors.grey;
   String lastUpdated = "--:--";
   CurrentCarbon? current;
+  List<CarbonToday>? todayData;
   Timer? timer;
 
   @override
   void initState() {
     super.initState();
-    loadColour();
+    reloadValues();
 
+    // Auto update every 2 secs for testing!
     timer = Timer.periodic(
       const Duration(seconds: 2),
-      (Timer t) => loadColour(),
+      (Timer t) => reloadValues(),
     );
   }
 
-  void loadColour() async {
+  void reloadValues() async {
     final carbon = await fetchCurrentIntensity();
+    final data = await fetchTodayIntensities();
 
     Color colour;
     switch (carbon.index) {
@@ -47,9 +51,10 @@ class _DashboardState extends State<Dashboard> {
 
     setState(() {
       indexColour = colour;
-      // Time extracted from API "from" field - only HH:MM
+      // Time extracted from API "from" (only HH:MM)
       lastUpdated = carbon.from.substring(11, 16);
       current = carbon;
+      todayData = data;
     });
   }
 
@@ -89,14 +94,31 @@ class _DashboardState extends State<Dashboard> {
 
             // Intensity Graph
             Container(
-              padding: const EdgeInsets.fromLTRB(0, 60, 0, 0),
-              child: const SizedBox(height: 280, child: IntensityGraph()),
+              padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: todayData == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : IntensityGraph(todayData: todayData!),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+List<FlSpot> convertToSpots(List<CarbonToday> data) {
+  return List.generate(data.length, (i) {
+    final point = data[i];
+    final y =
+        (point.actualIntensity != 0
+                ? point.actualIntensity
+                : point.forecastIntensity)
+            .toDouble();
+    return FlSpot(i.toDouble(), y);
+  });
 }
 
 class CurrentIntensity extends StatelessWidget {
@@ -119,73 +141,73 @@ class CurrentIntensity extends StatelessWidget {
   }
 }
 
-class IntensityGraph extends StatefulWidget {
-  const IntensityGraph({super.key});
+class IntensityGraph extends StatelessWidget {
+  final List<CarbonToday> todayData;
+  const IntensityGraph({super.key, required this.todayData});
 
-  @override
-  State<IntensityGraph> createState() => _IntensityGraphState();
-}
+  Widget bottomTitleWidgets(
+    double value,
+    TitleMeta meta,
+    List<CarbonToday> todayData,
+  ) {
+    int index = value.toInt();
+    String time = todayData[index].to.substring(11, 16);
 
-class _IntensityGraphState extends State<IntensityGraph> {
-  @override
-  Widget bottomTitleWidgets(double value, TitleMeta meta) {
-    const style = TextStyle(fontWeight: FontWeight.bold, fontSize: 16);
-    String text = switch (value.toInt()) {
-      2 => 'MAR',
-      5 => 'JUN',
-      8 => 'SEP',
-      _ => '',
-    };
-    return SideTitleWidget(
-      meta: meta,
-      child: Text(text, style: style),
-    );
+    return SideTitleWidget(meta: meta, child: Text(time));
   }
 
-  Widget leftTitleWidgets(double value, TitleMeta meta) {
-    const style = TextStyle(fontWeight: FontWeight.bold, fontSize: 15);
-    String text = switch (value.toInt()) {
-      1 => '10K',
-      3 => '30k',
-      5 => '50k',
-      _ => '',
-    };
+  @override
+  Widget build(BuildContext context) {
+    final spots = convertToSpots(todayData);
 
-    return Text(text, style: style, textAlign: TextAlign.left);
-  }
-
-  Widget build(BuildContext context) => LineChart(
-    LineChartData(
-      minX: 0,
-      maxX: 10,
-      titlesData: FlTitlesData(
-        show: true,
-        rightTitles: const AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 30,
-            interval: 1,
-            getTitlesWidget: bottomTitleWidgets,
+    return LineChart(
+      LineChartData(
+        minY: 0,
+        // calculate maxY based on data?
+        maxY: 300,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: Colors.white,
+            barWidth: 2,
+            dotData: FlDotData(show: false),
           ),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            interval: 1,
-            getTitlesWidget: leftTitleWidgets,
-            reservedSize: 42,
+        ],
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            axisNameWidget: const Text('Time of Day'),
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: 10,
+              getTitlesWidget: (value, meta) {
+                return bottomTitleWidgets(value, meta, todayData);
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            axisNameWidget: const Text('Carbon Intensity (gCO₂/kWh)'),
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 100,
+              reservedSize: 42,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
-// Update value every 30 mins + time updated
+// Update value every 30 mins + time updated √
 // Update colour according to index √
-// Convert CarbonToday to FLSpots somehow
-// Find a way to make x-axis in time format
+// Convert CarbonToday to FLSpots somehow √
+// Find a way to make x-axis in time format ?
