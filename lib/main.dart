@@ -11,6 +11,8 @@ void main() async {
   );
   final current = await fetchCurrentIntensity();
   print(current.index);
+  print(current.from);
+  print(current.intensity);
   runApp(const MyApp());
 }
 

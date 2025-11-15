@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'carbon_api.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:async';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -12,11 +13,18 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   Color indexColour = Colors.grey;
   String lastUpdated = "--:--";
+  CurrentCarbon? current;
+  Timer? timer;
 
   @override
   void initState() {
     super.initState();
     loadColour();
+
+    timer = Timer.periodic(
+      const Duration(seconds: 2),
+      (Timer t) => loadColour(),
+    );
   }
 
   void loadColour() async {
@@ -41,6 +49,7 @@ class _DashboardState extends State<Dashboard> {
       indexColour = colour;
       // Time extracted from API "from" field - only HH:MM
       lastUpdated = carbon.from.substring(11, 16);
+      current = carbon;
     });
   }
 
@@ -71,9 +80,9 @@ class _DashboardState extends State<Dashboard> {
               ),
               padding: const EdgeInsets.fromLTRB(0, 60, 0, 0),
               child: Column(
-                children: const [
-                  CurrentIntensity(),
-                  Text('gCO₂/kWh', style: TextStyle(color: Colors.white)),
+                children: [
+                  CurrentIntensity(value: current?.intensity),
+                  const Text('gCO₂/kWh', style: TextStyle(color: Colors.white)),
                 ],
               ),
             ),
@@ -90,33 +99,22 @@ class _DashboardState extends State<Dashboard> {
   }
 }
 
-class CurrentIntensity extends StatefulWidget {
-  const CurrentIntensity({super.key});
+class CurrentIntensity extends StatelessWidget {
+  final int? value;
+  const CurrentIntensity({super.key, this.value});
 
-  @override
-  State<CurrentIntensity> createState() => _CurrentIntensityState();
-}
-
-class _CurrentIntensityState extends State<CurrentIntensity> {
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<CurrentCarbon>(
-      future: fetchCurrentIntensity(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        } else if (snapshot.hasData) {
-          final intensity = snapshot.data!;
-          return Text(
-            '${intensity.intensity}',
-            style: const TextStyle(fontSize: 65, fontWeight: FontWeight.bold),
-          );
-        } else {
-          return const Text('No data available');
-        }
-      },
+    if (value == null) {
+      return const CircularProgressIndicator();
+    }
+    return Text(
+      '$value',
+      style: const TextStyle(
+        fontSize: 65,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
     );
   }
 }
