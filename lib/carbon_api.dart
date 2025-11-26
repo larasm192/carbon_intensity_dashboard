@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:async';
 
 class CurrentCarbon {
-  final String from;
-  final String to;
+  final DateTime from;
+  final DateTime to;
   final int intensity;
   final String index;
 
@@ -30,8 +30,8 @@ Future<CurrentCarbon> fetchCurrentIntensity() async {
     final value = intensityData['actual'];
 
     return CurrentCarbon(
-      from: data['from'],
-      to: data['to'],
+      from: DateTime.parse(data['from']).toLocal(),
+      to: DateTime.parse(data['to']).toLocal(),
       intensity: value,
       index: intensityData['index'],
     );
@@ -41,7 +41,7 @@ Future<CurrentCarbon> fetchCurrentIntensity() async {
 }
 
 class CarbonToday {
-  final String to;
+  final DateTime to;
   final int actualIntensity;
   final int forecastIntensity;
 
@@ -64,14 +64,14 @@ Future<List<CarbonToday>> fetchTodayIntensities() async {
 
     List<CarbonToday> intensityList = [];
     for (var item in data) {
-      final to = item['to'] ?? '';
+      final toRaw = item['to'];
       final intensity = item['intensity'] ?? {};
       final actual = intensity['actual'] ?? 0;
       final forecast = intensity['forecast'] ?? 0;
 
       intensityList.add(
         CarbonToday(
-          to: to,
+          to: DateTime.parse(toRaw).toLocal(),
           actualIntensity: actual,
           forecastIntensity: forecast,
         ),

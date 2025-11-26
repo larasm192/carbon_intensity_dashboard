@@ -36,14 +36,20 @@ class _DashboardState extends State<Dashboard> {
 
     Color colour;
     switch (carbon.index) {
+      case "very low":
+        colour = const Color.fromARGB(255, 14, 104, 89);
+        break;
       case "low":
-        colour = Colors.green;
+        colour = const Color.fromARGB(255, 27, 154, 139);
         break;
       case "moderate":
-        colour = Colors.orange;
+        colour = const Color.fromARGB(255, 225, 140, 55);
         break;
       case "high":
-        colour = Colors.red;
+        colour = const Color.fromARGB(255, 204, 70, 44);
+        break;
+      case "very high":
+        colour = const Color.fromARGB(255, 136, 36, 59);
         break;
       default:
         colour = Colors.grey;
@@ -51,8 +57,8 @@ class _DashboardState extends State<Dashboard> {
 
     setState(() {
       indexColour = colour;
-      // Time extracted from API "from" (only HH:MM)
-      lastUpdated = carbon.from.substring(11, 16);
+      // Time extracted from API "from" (only HH:MM) after parsing in DateTime
+      lastUpdated = carbon.from.toString().substring(11, 16);
       current = carbon;
       todayData = data;
     });
@@ -151,7 +157,7 @@ class IntensityGraph extends StatelessWidget {
     List<CarbonToday> todayData,
   ) {
     int index = value.toInt();
-    String time = todayData[index].to.substring(11, 16);
+    String time = todayData[index].to.toString().substring(11, 16);
 
     return SideTitleWidget(meta: meta, child: Text(time));
   }
