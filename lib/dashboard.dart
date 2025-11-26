@@ -16,6 +16,7 @@ class _DashboardState extends State<Dashboard> {
   CurrentCarbon? current;
   List<CarbonToday>? todayData;
   Timer? timer;
+  bool hasConnection = true;
 
   @override
   void initState() {
@@ -30,45 +31,53 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void reloadValues() async {
-    final carbon = await fetchCurrentIntensity();
-    final data = await fetchTodayIntensities();
+    try {
+      final carbon = await fetchCurrentIntensity();
+      final data = await fetchTodayIntensities();
 
-    Color colour;
-    switch (carbon.index) {
-      case "very low":
-        colour = const Color.fromARGB(255, 14, 104, 89);
-        break;
-      case "low":
-        colour = const Color.fromARGB(255, 27, 154, 139);
-        break;
-      case "moderate":
-        colour = const Color.fromARGB(255, 225, 140, 55);
-        break;
-      case "high":
-        colour = const Color.fromARGB(255, 204, 70, 44);
-        break;
-      case "very high":
-        colour = const Color.fromARGB(255, 136, 36, 59);
-        break;
-      default:
-        colour = Colors.grey;
+      Color colour;
+      switch (carbon.index) {
+        case "very low":
+          colour = const Color.fromARGB(255, 14, 104, 89);
+          break;
+        case "low":
+          colour = const Color.fromARGB(255, 27, 154, 139);
+          break;
+        case "moderate":
+          colour = const Color.fromARGB(255, 225, 140, 55);
+          break;
+        case "high":
+          colour = const Color.fromARGB(255, 204, 70, 44);
+          break;
+        case "very high":
+          colour = const Color.fromARGB(255, 136, 36, 59);
+          break;
+        default:
+          colour = Colors.grey;
+      }
+
+      setState(() {
+        hasConnection = true;
+        indexColour = colour;
+        lastUpdated = carbon.from.toString().substring(11, 16);
+        current = carbon;
+        todayData = data;
+      });
+    } catch (e) {
+      setState(() {
+        hasConnection = false;
+      });
     }
-
-    setState(() {
-      indexColour = colour;
-      // Time extracted from API "from" (only HH:MM) after parsing in DateTime
-      lastUpdated = carbon.from.toString().substring(11, 16);
-      current = carbon;
-      todayData = data;
-    });
   }
 
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: indexColour,
+        backgroundColor: hasConnection ? indexColour : Colors.grey,
         title: Text(
-          'Last updated: $lastUpdated',
+          hasConnection
+              ? 'Last updated: $lastUpdated'
+              : 'No internet connection – Last updated: $lastUpdated',
           style: const TextStyle(fontSize: 15),
         ),
       ),
