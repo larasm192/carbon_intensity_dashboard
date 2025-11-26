@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'carbon_api.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
-import 'dart:math';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -176,15 +175,33 @@ class IntensityGraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spotsActual = convertActualSpots(todayData);
+    final spotsForecast = convertForecastSpots(todayData);
+    final maxValue = getMaxIntensity(todayData);
     return LineChart(
       LineChartData(
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                final index = spot.x.toInt();
+
+                final time = todayData[index].to.toString().substring(11, 16);
+                return LineTooltipItem(
+                  '$time\n'
+                  '${spot.y.toInt()} gCO₂/kWh',
+                  const TextStyle(color: Colors.white),
+                );
+              }).toList();
+            },
+          ),
+        ),
         minY: 0,
-        // calculate maxY based on data?
-        maxY: 300,
+        maxY: maxValue + 30,
         lineBarsData: [
           // ACTUAL LINE (solid)
           LineChartBarData(
-            spots: convertActualSpots(todayData),
+            spots: spotsActual,
             isCurved: true,
             color: Colors.white,
             barWidth: 3,
@@ -197,7 +214,7 @@ class IntensityGraph extends StatelessWidget {
 
           // FORECAST LINE (dashed)
           LineChartBarData(
-            spots: convertForecastSpots(todayData),
+            spots: spotsForecast,
             isCurved: true,
             color: Colors.grey,
             barWidth: 3,
@@ -238,7 +255,14 @@ class IntensityGraph extends StatelessWidget {
   }
 }
 
-// Update value every 30 mins + time updated √
-// Update colour according to index √
-// Convert CarbonToday to FLSpots somehow √
-// Find a way to make x-axis in time format √
+double getMaxIntensity(List<CarbonToday> data) {
+  int maxValue = 0;
+
+  for (final point in data) {
+    final max = point.actualIntensity != 0
+        ? point.actualIntensity
+        : point.forecastIntensity;
+    if (max > maxValue) maxValue = max;
+  }
+  return maxValue.toDouble();
+}
