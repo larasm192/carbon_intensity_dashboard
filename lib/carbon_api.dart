@@ -27,7 +27,7 @@ Future<CurrentCarbon> fetchCurrentIntensity() async {
     final data = decoded['data'][0];
 
     final intensityData = data['intensity'];
-    final value = intensityData['actual'];
+    final value = intensityData['actual'] ?? intensityData['forecast'];
 
     return CurrentCarbon(
       from: DateTime.parse(data['from']).toLocal(),

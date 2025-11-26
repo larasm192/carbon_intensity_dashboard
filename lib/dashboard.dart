@@ -115,15 +115,27 @@ class _DashboardState extends State<Dashboard> {
   }
 }
 
-List<FlSpot> convertToSpots(List<CarbonToday> data) {
+List<FlSpot> convertActualSpots(List<CarbonToday> data) {
   return List.generate(data.length, (i) {
     final point = data[i];
-    final y =
-        (point.actualIntensity != 0
-                ? point.actualIntensity
-                : point.forecastIntensity)
-            .toDouble();
-    return FlSpot(i.toDouble(), y);
+
+    if (point.actualIntensity != 0) {
+      return FlSpot(i.toDouble(), point.actualIntensity.toDouble());
+    }
+
+    return FlSpot.nullSpot;
+  });
+}
+
+List<FlSpot> convertForecastSpots(List<CarbonToday> data) {
+  return List.generate(data.length, (i) {
+    final point = data[i];
+
+    if (point.actualIntensity == 0) {
+      return FlSpot(i.toDouble(), point.forecastIntensity.toDouble());
+    }
+
+    return FlSpot.nullSpot;
   });
 }
 
@@ -164,19 +176,32 @@ class IntensityGraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spots = convertToSpots(todayData);
-
     return LineChart(
       LineChartData(
         minY: 0,
         // calculate maxY based on data?
         maxY: 300,
         lineBarsData: [
+          // ACTUAL LINE (solid)
           LineChartBarData(
-            spots: spots,
+            spots: convertActualSpots(todayData),
             isCurved: true,
             color: Colors.white,
-            barWidth: 2,
+            barWidth: 3,
+            dotData: FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+          ),
+
+          // FORECAST LINE (dashed)
+          LineChartBarData(
+            spots: convertForecastSpots(todayData),
+            isCurved: true,
+            color: Colors.grey,
+            barWidth: 3,
+            dashArray: [5, 6],
             dotData: FlDotData(show: false),
           ),
         ],
@@ -216,4 +241,4 @@ class IntensityGraph extends StatelessWidget {
 // Update value every 30 mins + time updated √
 // Update colour according to index √
 // Convert CarbonToday to FLSpots somehow √
-// Find a way to make x-axis in time format ?
+// Find a way to make x-axis in time format √
