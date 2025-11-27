@@ -4,12 +4,12 @@ An iOS Flutter application that displays the current UK carbon intensity and a h
 
 ## How it Works
 
-1. Current Carbon Intensity
+1. **Current Carbon Intensity**
 
 - Fetches national carbon intensity from current half-hour
 - Background colour changes based on carbon intensity index (e.g. very low, low, moderate, high, very high)
 
-2. Half-Hourly Intensity Graph
+2. **Half-Hourly Intensity Graph**
 
 - Fetches today's carbon intensities from every half-hour
 - Used fl_chart package (https://pub.dev/packages/fl_chart)
@@ -17,17 +17,17 @@ An iOS Flutter application that displays the current UK carbon intensity and a h
 - Dashed grey line: Forecast values
 - Touch tooltips show timestamp and corresponding intensity value
 
-3. Error Handling
+3. **Error Handling**
 
 - App bar shows: Last updated time + no internet connection/API unavailable
 - Used internet_connection_checker_plus package (https://pub.dev/packages/internet_connection_checker_plus) for internet errors
 - Forecast value is used when actual is unavailable
 
-4. Loading states
+4. **Loading states**
 
 - Used CircularProgressIndicator for when data is loading
 
-5. Auto-refresh
+5. **Auto-refresh**
 
 - Refreshes every 30 minutes to match API's frequency
 
