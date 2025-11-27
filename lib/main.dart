@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
 import 'themes.dart';
 import 'dashboard.dart';
-import 'carbon_api.dart';
 
-void main() async {
-  final list = await fetchTodayIntensities();
-  print('Loaded ${list.length} intervals');
-  print(
-    'First one: ${list.first.to} | ${list.first.actualIntensity} gCO₂/kWh | ${list.first.forecastIntensity}',
-  );
-  final current = await fetchCurrentIntensity();
-  print(current.index);
-  print(current.from.toString().substring(11, 16));
-  print(current.intensity);
+void main() {
   runApp(const MyApp());
 }
 
@@ -21,7 +11,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const String appTitle = 'Flutter layout demo';
+    const String appTitle = 'Carbon Intensity Dashboard';
     return MaterialApp(
       title: appTitle,
       theme: lightTheme,

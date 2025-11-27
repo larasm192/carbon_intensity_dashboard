@@ -64,7 +64,7 @@ Future<List<CarbonToday>> fetchTodayIntensities() async {
 
     List<CarbonToday> intensityList = [];
     for (var item in data) {
-      final toRaw = item['to'];
+      final toRaw = item['to'] as String;
       final intensity = item['intensity'] ?? {};
       final actual = intensity['actual'] ?? 0;
       final forecast = intensity['forecast'] ?? 0;
@@ -80,6 +80,6 @@ Future<List<CarbonToday>> fetchTodayIntensities() async {
 
     return intensityList;
   } else {
-    throw Exception('Failed to load current intensity');
+    throw Exception('Failed to load today\'s intensities');
   }
 }

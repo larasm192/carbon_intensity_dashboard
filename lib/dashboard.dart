@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'carbon_api.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -16,18 +17,33 @@ class _DashboardState extends State<Dashboard> {
   CurrentCarbon? current;
   List<CarbonToday>? todayData;
   Timer? timer;
-  bool hasConnection = true;
+  bool internetConnection = true;
+  bool apiConnection = true;
+  late StreamSubscription<InternetStatus> _connectionSub;
 
   @override
   void initState() {
     super.initState();
     reloadValues();
 
-    // Auto update every 2 secs for testing!
+    // Checking Wifi connection
+    _connectionSub = InternetConnection().onStatusChange.listen((status) {
+      setState(() {
+        internetConnection = (status == InternetStatus.connected);
+      });
+    });
+
     timer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(minutes: 30),
       (Timer t) => reloadValues(),
     );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    _connectionSub.cancel();
+    super.dispose();
   }
 
   void reloadValues() async {
@@ -57,7 +73,7 @@ class _DashboardState extends State<Dashboard> {
       }
 
       setState(() {
-        hasConnection = true;
+        apiConnection = true;
         indexColour = colour;
         lastUpdated = carbon.from.toString().substring(11, 16);
         current = carbon;
@@ -65,19 +81,25 @@ class _DashboardState extends State<Dashboard> {
       });
     } catch (e) {
       setState(() {
-        hasConnection = false;
+        apiConnection = false;
       });
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: hasConnection ? indexColour : Colors.grey,
+        backgroundColor: (internetConnection && apiConnection)
+            ? indexColour
+            : Colors.grey,
+
         title: Text(
-          hasConnection
-              ? 'Last updated: $lastUpdated'
-              : 'No internet connection – Last updated: $lastUpdated',
+          !internetConnection
+              ? 'No internet connection – Last updated $lastUpdated'
+              : !apiConnection
+              ? 'API unavailable – Last updated $lastUpdated'
+              : 'Last updated: $lastUpdated',
           style: const TextStyle(fontSize: 15),
         ),
       ),
@@ -176,10 +198,17 @@ class IntensityGraph extends StatelessWidget {
     TitleMeta meta,
     List<CarbonToday> todayData,
   ) {
-    int index = value.toInt();
-    String time = todayData[index].to.toString().substring(11, 16);
+    final int index = value.toInt();
 
-    return SideTitleWidget(meta: meta, child: Text(time));
+    final String time = todayData[index].to.toString().substring(11, 16);
+
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        time,
+        style: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
+    );
   }
 
   @override
@@ -187,26 +216,34 @@ class IntensityGraph extends StatelessWidget {
     final spotsActual = convertActualSpots(todayData);
     final spotsForecast = convertForecastSpots(todayData);
     final maxValue = getMaxIntensity(todayData);
+    final maxX = (todayData.length - 1).toDouble();
+
     return LineChart(
       LineChartData(
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (touchedSpots) {
-              return touchedSpots.map((spot) {
+              final items = <LineTooltipItem>[];
+              for (final spot in touchedSpots) {
                 final index = spot.x.toInt();
+                if (index < 0 || index >= todayData.length) continue;
 
                 final time = todayData[index].to.toString().substring(11, 16);
-                return LineTooltipItem(
-                  '$time\n'
-                  '${spot.y.toInt()} gCO₂/kWh',
-                  const TextStyle(color: Colors.white),
+                items.add(
+                  LineTooltipItem(
+                    '$time\n'
+                    '${spot.y.toInt()} gCO₂/kWh',
+                    const TextStyle(color: Colors.white),
+                  ),
                 );
-              }).toList();
+              }
+              return items.isEmpty ? <LineTooltipItem?>[] : items;
             },
           ),
         ),
         minY: 0,
         maxY: maxValue + 30,
+        maxX: maxX,
         lineBarsData: [
           // ACTUAL LINE (solid)
           LineChartBarData(
@@ -227,7 +264,7 @@ class IntensityGraph extends StatelessWidget {
             isCurved: true,
             color: Colors.grey,
             barWidth: 3,
-            dashArray: [5, 6],
+            dashArray: [5, 3],
             dotData: FlDotData(show: false),
           ),
         ],
