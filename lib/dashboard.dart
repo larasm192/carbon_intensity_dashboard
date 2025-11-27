@@ -75,7 +75,7 @@ class _DashboardState extends State<Dashboard> {
       setState(() {
         apiConnection = true;
         indexColour = colour;
-        lastUpdated = carbon.from.toString().substring(11, 16);
+        lastUpdated = carbon.to.toString().substring(11, 16);
         current = carbon;
         todayData = data;
       });
@@ -277,7 +277,11 @@ class IntensityGraph extends StatelessWidget {
             sideTitles: SideTitles(showTitles: false),
           ),
           bottomTitles: AxisTitles(
-            axisNameWidget: const Text('Time of Day'),
+            axisNameWidget: const Text(
+              'Time of Day',
+              style: TextStyle(fontSize: 12),
+            ),
+            axisNameSize: 15,
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 30,
@@ -288,7 +292,11 @@ class IntensityGraph extends StatelessWidget {
             ),
           ),
           leftTitles: AxisTitles(
-            axisNameWidget: const Text('Carbon Intensity (gCO₂/kWh)'),
+            axisNameWidget: const Text(
+              'Carbon Intensity (gCO₂/kWh)',
+              style: TextStyle(fontSize: 12),
+            ),
+            axisNameSize: 15,
             sideTitles: SideTitles(
               showTitles: true,
               interval: 100,
